@@ -1,0 +1,41 @@
+version: '3.4'
+
+networks:
+  sl_network:
+    driver: "bridge"
+
+services:
+  sl:
+    image: ${DOCKER_REGISTRY-}sl
+    ports:
+      - "8080:8080"
+    build:
+      context: .
+      dockerfile: Dockerfile
+    environment:
+      DB_CONNECTION_STRING: "jdbc:postgresql://sl_postgres_db:5432/sl"
+      DB_USER: "postgres"
+      DB_PASSWORD: "sl-postgres"
+    depends_on:
+      - sl_postgres_db
+    networks:
+      - sl_network
+
+  sl_postgres_db:
+    image: ${DOCKER_REGISTRY-}postgres
+    ports:
+    - "5432:5432"
+    restart: "always"
+    volumes:
+    - sl_db_volume:/var/lib/postgresql/data
+    - ./bin/schema.sql:/docker-entrypoint-initdb.d/schema.sql
+    - ./bin/data.sql:/docker-entrypoint-initdb.d/data.sql
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: sl-postgres
+      POSTGRES_DB: sl
+    networks:
+      - sl_network
+  
+volumes:
+  sl_db_volume:
